@@ -44,7 +44,7 @@ resnet_model.fc = nn.Sequential(
     nn.Linear(256, num_classes)
 )
 
-MODEL_RESNET_PATH = 'D:/USER/fastAPI/PBL5/api/pbl5_ver2.pth'
+MODEL_RESNET_PATH = 'D:/USER/fastAPI/PBL5/api/pbl5_ver4.pth'
 resnet_model.load_state_dict(torch.load(MODEL_RESNET_PATH, map_location=device))
 resnet_model.eval()
 resnet_model = resnet_model.to(device)
