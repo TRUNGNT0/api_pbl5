@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Greenhouse</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.6.7/dist/axios.min.js"></script>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1 class="text-center">Smart Greenhouse Monitoring</h1>
+        <div class="row mt-4">
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Temperature</h5>
+                        <p class="card-text" id="temperature">0 °C</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Humidity</h5>
+                        <p class="card-text" id="humidity">0 %</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Light</h5>
+                        <p class="card-text" id="light">0 lux</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Soil Moisture</h5>
+                        <p class="card-text" id="moisture">0</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-12 mt-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Leaf Image</h5>
+                        <img id="leafImage" src="" alt="Leaf" class="img-fluid" style="display: none; max-width: 100%;">
+                        <button class="btn btn-primary mt-2" onclick="takePhoto()">Take Photo with Pi Camera</button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-12 mt-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">ESP32 Camera</h5>
+                        <img id="esp32Image" src="" alt="ESP32 Camera" class="img-fluid" style="display: none; max-width: 100%;">
+                        <div class="mt-2">
+                            <div class="form-group mb-2">
+                                <label for="resolutionSelect">Độ phân giải:</label>
+                                <select class="form-control" id="resolutionSelect">
+                                    <option value="UXGA">UXGA (1600x1200) - Cao nhất</option>
+                                    <option value="SXGA">SXGA (1280x1024)</option>
+                                    <option value="XGA">XGA (1024x768)</option>
+                                    <option value="SVGA">SVGA (800x600)</option>
+                                    <option value="VGA">VGA (640x480)</option>
+                                    <option value="CIF">CIF (400x296)</option>
+                                </select>
+                            </div>
+                            <div class="form-group mb-2">
+                                <label for="qualityRange">Chất lượng (10-63, thấp hơn = chất lượng cao hơn):</label>
+                                <input type="range" class="form-range" min="10" max="63" value="10" id="qualityRange">
+                                <span id="qualityValue">10</span>
+                            </div>
+                        </div>
+                        <div class="btn-group mt-2">
+                            <button class="btn btn-success" onclick="captureESP32Image()">Capture ESP32 Image</button>
+                            <button class="btn btn-info ms-2" onclick="getLatestESP32Image()">View Latest ESP32 Image</button>
+                        </div>
+                    </div>
+                </div>
+            </div>            <div class="col-md-12 mt-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Leaf Analysis</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <img id="capturedImage" src="" alt="Captured Leaf" class="img-fluid mb-3" style="display: none; max-width: 100%;">
+                                <div class="alert alert-info" role="alert" id="imageStatus">
+                                    No image selected for analysis
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div id="analysisResults" class="mt-3">
+                                    <h6>Analysis Results:</h6>
+                                    <div id="resultsList" class="list-group">
+                                        <!-- Results will be displayed here -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <button class="btn btn-primary" onclick="analyzeLatestImage()">Analyze Latest Image</button>
+                            <button class="btn btn-secondary ms-2" onclick="getLatestESP32Image()">View Latest Image</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="text-center mt-4">
+            <button class="btn btn-secondary" onclick="refreshData()">Refresh Data</button>
+        </div>
+    </div>
+
+    <script>
+        async function fetchData() {
+            try {
+                const res = await axios.get("/api/data");
+                document.getElementById("temperature").textContent = res.data.temperature + " °C";
+                document.getElementById("humidity").textContent = res.data.humidity + " %";
+                document.getElementById("light").textContent = res.data.light + " lux";
+                document.getElementById("moisture").textContent = res.data.moisture;
+            } catch (error) {
+                console.error("Error fetching data:", error);
+            }
+        }
+
+        async function fetchLeafImage() {
+            try {
+                const res = await axios.get("/api/leaf");
+                const img = document.getElementById("leafImage");
+                if (res.data.image) {
+                    img.src = `data:image/jpeg;hex,${res.data.image}`;
+                    img.style.display = "block";
+                }
+            } catch (error) {
+                console.error("Error fetching leaf image:", error);
+            }
+        }
+
+        async function takePhoto() {
+            try {
+                await axios.get("/api/take_photo");
+                setTimeout(fetchLeafImage, 2000);  // Wait 2 seconds to receive the image
+            } catch (error) {
+                console.error("Error taking photo:", error);
+            }
+        }
+        
+        async function captureESP32Image() {
+            try {
+                // Lấy cài đặt độ phân giải và chất lượng từ giao diện người dùng
+                const resolution = document.getElementById('resolutionSelect').value;
+                const quality = document.getElementById('qualityRange').value;
+                
+                const res = await axios.get(`/capture-image?resolution=${resolution}&quality=${quality}`);
+                if (res.data.status === "success") {
+                    const img = document.getElementById("esp32Image");
+                    img.src = res.data.url;
+                    img.style.display = "block";
+                    alert("Image captured successfully");
+                } else {
+                    alert("Failed to capture image: " + res.data.message);
+                }
+            } catch (error) {
+                console.error("Error capturing ESP32 image:", error);
+                alert("Error capturing image: " + error.message);
+            }
+        }
+        
+        async function getLatestESP32Image() {
+            try {
+                const res = await axios.get("/latest-image");
+                if (res.data.status === "success") {
+                    const img = document.getElementById("esp32Image");
+                    img.src = res.data.url;
+                    img.style.display = "block";
+                    
+                    // Format timestamp
+                    const date = new Date(res.data.timestamp * 1000);
+                    const formattedDate = date.toLocaleString();
+                    console.log("Image timestamp: " + formattedDate);
+                } else {
+                    alert("Failed to get latest image: " + res.data.message);
+                }
+            } catch (error) {
+                console.error("Error getting latest ESP32 image:", error);
+                alert("Error getting latest image: " + error.message);
+            }
+        }
+
+        function refreshData() {
+            fetchData();
+            fetchLeafImage();
+            getLatestESP32Image();
+        }
+
+        // Làm mới tự động mỗi 5 giây
+        setInterval(() => {
+            fetchData();
+            fetchLeafImage();
+            // Uncomment the line below if you want to auto-refresh ESP32 images
+            // getLatestESP32Image();
+        }, 5000);
+
+        // Cập nhật giá trị chất lượng khi thanh trượt thay đổi
+        document.getElementById('qualityRange').addEventListener('input', function() {
+            document.getElementById('qualityValue').textContent = this.value;
+        });
+        
+        // Lấy dữ liệu lần đầu
+        refreshData();        async function analyzeLatestImage() {
+            try {
+                const analyzeButton = document.querySelector('button[onclick="analyzeLatestImage()"]');
+                analyzeButton.disabled = true;
+                analyzeButton.textContent = 'Analyzing...';
+                
+                document.getElementById('imageStatus').textContent = 'Analyzing latest image...';
+
+                const response = await axios.post('/api/capture-and-analyze');
+                
+                if (response.data.status === 'success') {
+                    // Display the captured image
+                    const img = document.getElementById('capturedImage');
+                    img.src = response.data.image;
+                    img.style.display = 'block';
+                    document.getElementById('imageStatus').textContent = 'Analysis complete';
+
+                    // Display analysis results
+                    const resultsList = document.getElementById('resultsList');
+                    resultsList.innerHTML = ''; // Clear previous results
+                      response.data.analysis.forEach(result => {
+                        const resultItem = document.createElement('div');
+                        resultItem.className = 'list-group-item';
+                        resultItem.innerHTML = `
+                            <p class="mb-1"><strong>${result.predicted_class}</strong></p>
+                            ${result.details ? `<p class="text-muted small mb-2">${result.details}</p>` : ''}
+                            <div class="progress" style="height: 20px;">
+                                <div class="progress-bar" role="progressbar" 
+                                     style="width: ${(result.confidence * 100).toFixed(2)}%;" 
+                                     aria-valuenow="${(result.confidence * 100).toFixed(2)}" 
+                                     aria-valuemin="0" 
+                                     aria-valuemax="100">
+                                    ${(result.confidence * 100).toFixed(2)}%
+                                </div>
+                            </div>
+                        `;
+                        resultsList.appendChild(resultItem);
+                    });
+                } else {
+                    document.getElementById('imageStatus').className = 'alert alert-danger';
+                    document.getElementById('imageStatus').textContent = response.data.message || 'Failed to process image';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('imageStatus').className = 'alert alert-danger';
+                document.getElementById('imageStatus').textContent = error.response?.data?.message || 'An error occurred during analysis';
+            } finally {
+                const analyzeButton = document.querySelector('button[onclick="analyzeLatestImage()"]');
+                analyzeButton.disabled = false;
+                analyzeButton.textContent = 'Analyze Latest Image';
+            }
+        }
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

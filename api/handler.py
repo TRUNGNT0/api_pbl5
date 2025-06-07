@@ -1,4 +1,3 @@
-
 import os
 import cv2
 import numpy as np
@@ -12,14 +11,14 @@ from typing import List, Dict
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Tải mô hình YOLO
-MODEL_YOLO_PATH = 'D:/USER/fastAPI/PBL5/api/best.pt'
+MODEL_YOLO_PATH = 'best.pt'
 if not os.path.exists(MODEL_YOLO_PATH):
     raise FileNotFoundError(f"Mô hình YOLO không tồn tại tại: {MODEL_YOLO_PATH}")
 yolo_model = YOLO(MODEL_YOLO_PATH)
 
 # Tải mô hình ResNet18
 num_classes = 5
-resnet_model = models.resnet18(pretrained=False)
+resnet_model = models.resnet18(weights=None)
 for param in resnet_model.parameters():
     param.requires_grad = False
 for param in resnet_model.layer2.parameters():
@@ -44,7 +43,7 @@ resnet_model.fc = nn.Sequential(
     nn.Linear(256, num_classes)
 )
 
-MODEL_RESNET_PATH = 'D:/USER/fastAPI/PBL5/api/pbl5_ver4.pth'
+MODEL_RESNET_PATH = 'pbl5_ver4.pth'
 resnet_model.load_state_dict(torch.load(MODEL_RESNET_PATH, map_location=device))
 resnet_model.eval()
 resnet_model = resnet_model.to(device)
@@ -57,8 +56,15 @@ transform = transforms.Compose([
     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 ])
 
-# Danh sách lớp
+# Danh sách lớp và độ ưu tiên
 class_names = ['Anthracnose', 'Bacterial-Spot', 'Downy-Mildew', 'Healthy-Leaf', 'Pest-Damage']
+priority = {
+    'Anthracnose': 1,
+    'Downy-Mildew': 2,
+    'Bacterial-Spot': 3,
+    'Pest-Damage': 4,
+    'Healthy-Leaf': 5
+}
 
 def process_leaf_image(image_path: str) -> List[Dict]:
     """Xử lý ảnh và dự đoán bệnh lá cây"""
@@ -77,8 +83,12 @@ def process_leaf_image(image_path: str) -> List[Dict]:
     boxes = results[0].boxes.xyxy.cpu().numpy()
     confidences = results[0].boxes.conf.cpu().numpy()
 
-    leaves = []
-    results_list = []
+    if len(boxes) == 0:
+        return [{"predicted_class": "Tình trạng cây: Không phát hiện được lá", "confidence": 0.0}]
+
+    # Dictionary để đếm tần suất và tính tổng xác suất các bệnh
+    disease_scores = {name: {"count": 0, "total_confidence": 0.0, "avg_confidence": 0.0} for name in class_names}
+    total_leaves = 0
 
     # Cắt và dự đoán từng lá
     for i, box in enumerate(boxes):
@@ -92,12 +102,35 @@ def process_leaf_image(image_path: str) -> List[Dict]:
         input_tensor = transform(leaf).unsqueeze(0).to(device)
         with torch.no_grad():
             output = resnet_model(input_tensor)
+            probabilities = torch.softmax(output, dim=1)
             pred_class = torch.argmax(output, dim=1).item()
+            confidence = float(probabilities[0][pred_class])
         
-        results_list.append({
-            "predicted_class": class_names[pred_class],
-            "confidence": float(confidences[i])
-        })
-        leaves.append(leaf)
+        disease_name = class_names[pred_class]
+        disease_scores[disease_name]["count"] += 1
+        disease_scores[disease_name]["total_confidence"] += confidence
+        total_leaves += 1
 
-    return results_list
+    # Tính trung bình xác suất cho mỗi bệnh
+    for disease in disease_scores:
+        if disease_scores[disease]["count"] > 0:
+            disease_scores[disease]["avg_confidence"] = (
+                disease_scores[disease]["total_confidence"] / disease_scores[disease]["count"]
+            )
+
+    # Tìm bệnh có độ ưu tiên cao nhất trong các bệnh được phát hiện
+    detected_diseases = [disease for disease in disease_scores if disease_scores[disease]["count"] > 0]
+    if not detected_diseases:
+        return [{"predicted_class": "Tình trạng cây: Không phát hiện được bệnh", "confidence": 0.0}]
+
+    # Sắp xếp theo độ ưu tiên và lấy bệnh có ưu tiên cao nhất
+    highest_priority_disease = min(detected_diseases, key=lambda x: priority[x])
+    
+    # Tạo kết quả chi tiết
+    result = {
+        "predicted_class": f"Tình trạng cây: {highest_priority_disease}",
+        "confidence": float(disease_scores[highest_priority_disease]["avg_confidence"]),
+        "details": f"Phát hiện {disease_scores[highest_priority_disease]['count']} trên tổng số {total_leaves} lá"
+    }
+
+    return [result]
