@@ -3,65 +3,237 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Greenhouse</title>
+    <title>Smart Greenhouse Control</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/axios@1.6.7/dist/axios.min.js"></script>
+    <style>
+        body {
+            background-color: #f4f7f6;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .card-header {
+            background-color: #2e7d32;
+            color: white;
+            font-weight: 600;
+            border-radius: 10px 10px 0 0;
+        }
+        .btn-primary, .btn-success, .btn-danger {
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-size: 1rem;
+        }
+        .btn-group button {
+            transition: all 0.3s ease;
+        }
+        .btn-group button:hover {
+            transform: translateY(-2px);
+        }
+        .sensor-card {
+            min-height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        .alert {
+            border-radius: 8px;
+        }
+        .img-fluid {
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+        .section-title {
+            font-size: 1.5rem;
+            color: #2e7d32;
+            margin-bottom: 1.5rem;
+        }
+        .servo-visual {
+            padding: 20px;
+            border: 2px dashed #dee2e6;
+            border-radius: 50%;
+            width: 100px;
+            height: 100px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .servo-visual i {
+            transition: transform 0.5s ease;
+        }
+        .form-range::-webkit-slider-thumb {
+            background: #2e7d32;
+        }
+        .form-range::-moz-range-thumb {
+            background: #2e7d32;
+        }
+    </style>
 </head>
 <body>
-    <div class="container mt-4">
-        <h1 class="text-center">Smart Greenhouse Monitoring</h1>
-        <div class="row mt-4">
-            <div class="col-md-3">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Temperature</h5>
-                        <p class="card-text" id="temperature">0 °C</p>
+    <div class="container py-5">
+        <h1 class="text-center mb-4 text-3xl font-bold text-gray-800">Smart Greenhouse Control</h1>
+
+        <!-- Sensor Data Section -->
+        <div class="mb-5">
+            <h2 class="section-title">Environmental Sensors</h2>
+            <div class="row g-4">
+                <div class="col-md-3 col-sm-6">
+                    <div class="card sensor-card">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="fas fa-thermometer-half me-2"></i>Temperature</h5>
+                            <p class="card-text fs-4" id="temperature">0 °C</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <div class="card sensor-card">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="fas fa-tint me-2"></i>Humidity</h5>
+                            <p class="card-text fs-4" id="humidity">0 %</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <div class="card sensor-card">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="fas fa-sun me-2"></i>Light</h5>
+                            <p class="card-text fs-4" id="light">0 lux</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <div class="card sensor-card">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="fas fa-seedling me-2"></i>Soil Moisture</h5>
+                            <p class="card-text fs-4" id="moisture">0 %</p>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Humidity</h5>
-                        <p class="card-text" id="humidity">0 %</p>
+        </div>
+
+        <!-- Motor Control Section -->
+        <div class="mb-5">
+            <h2 class="section-title">Motor Control</h2>
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-fan me-2"></i>Fan Control</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text text-muted">Manually control the fan for humidity management. Auto-triggers when humidity > 70%.</p>
+                            <div class="btn-group">
+                                <button class="btn btn-success" onclick="controlMotor(1, 'run')">
+                                    <i class="fas fa-play me-2"></i>Start Fan
+                                </button>
+                                <button class="btn btn-danger ms-2" onclick="controlMotor(1, 'stop')">
+                                    <i class="fas fa-stop me-2"></i>Stop Fan
+                                </button>
+                            </div>
+                            <div id="fanStatus" class="alert alert-info mt-3" style="display: none;"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-tint me-2"></i>Water Pump Control</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text text-muted">Manually control the pump for irrigation. Auto-triggers when soil moisture < 60%.</p>
+                            <div class="btn-group">
+                                <button class="btn btn-success" onclick="controlMotor(2, 'run')">
+                                    <i class="fas fa-play me-2"></i>Start Pump
+                                </button>
+                                <button class="btn btn-danger ms-2" onclick="controlMotor(2, 'stop')">
+                                    <i class="fas fa-stop me-2"></i>Stop Pump
+                                </button>
+                            </div>
+                            <div id="pumpStatus" class="alert alert-info mt-3" style="display: none;"></div>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Light</h5>
-                        <p class="card-text" id="light">0 lux</p>
+        </div>
+
+        <!-- Servo Control Section -->
+        <div class="mb-5">
+            <h2 class="section-title">Servo Control</h2>
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-cogs me-2"></i>SG90 Servo Motor</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <p class="card-text text-muted">Control servo angle (0-140 degrees) for automated positioning.</p>
+                            <div class="mb-3">
+                                <label for="servoAngleRange" class="form-label">
+                                    Servo Angle: <span id="servoAngleValue" class="badge bg-primary">70</span>°
+                                </label>
+                                <input type="range" class="form-range" min="0" max="140" value="70" id="servoAngleRange">
+                                <div class="d-flex justify-content-between text-muted small">
+                                    <span>0°</span>
+                                    <span>70°</span>
+                                    <span>140°</span>
+                                </div>
+                            </div>
+                            <div class="btn-group">
+                                <button class="btn btn-success" onclick="setServoAngle()">
+                                    <i class="fas fa-arrow-right me-2"></i>Set Angle
+                                </button>
+                                <button class="btn btn-warning ms-2" onclick="resetServo()">
+                                    <i class="fas fa-undo me-2"></i>Reset
+                                </button>
+                                <button class="btn btn-info ms-2" onclick="setServoPreset(0)">
+                                    <i class="fas fa-angle-left me-2"></i>0°
+                                </button>
+                                <button class="btn btn-info ms-2" onclick="setServoPreset(70)">
+                                    <i class="fas fa-arrows-alt-h me-2"></i>70°
+                                </button>
+                                <button class="btn btn-info ms-2" onclick="setServoPreset(140)">
+                                    <i class="fas fa-angle-right me-2"></i>140°
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <div class="servo-visual mb-3">
+                                    <i class="fas fa-circle-notch fa-3x text-primary" id="servoIcon" style="transform: rotate(0deg);"></i>
+                                </div>
+                                <small class="text-muted">Visual representation of servo position</small>
+                            </div>
+                        </div>
                     </div>
+                    <div id="servoStatus" class="alert alert-info mt-3" style="display: none;"></div>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Soil Moisture</h5>
-                        <p class="card-text" id="moisture">0</p>
-                    </div>
+        </div>
+
+        <!-- ESP32 Camera Section -->
+        <div class="mb-5">
+            <h2 class="section-title">ESP32 Camera</h2>
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-camera me-2"></i>Camera Control</h5>
                 </div>
-            </div>
-            <div class="col-md-12 mt-4">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Leaf Image</h5>
-                        <img id="leafImage" src="" alt="Leaf" class="img-fluid" style="display: none; max-width: 100%;">
-                        <button class="btn btn-primary mt-2" onclick="takePhoto()">Take Photo with Pi Camera</button>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-12 mt-4">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">ESP32 Camera</h5>
-                        <img id="esp32Image" src="" alt="ESP32 Camera" class="img-fluid" style="display: none; max-width: 100%;">
-                        <div class="mt-2">
-                            <div class="form-group mb-2">
-                                <label for="resolutionSelect">Độ phân giải:</label>
-                                <select class="form-control" id="resolutionSelect">
-                                    <option value="UXGA">UXGA (1600x1200) - Cao nhất</option>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <img id="esp32Image" src="" alt="ESP32 Camera" class="img-fluid mb-3" style="display: none;">
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="resolutionSelect" class="form-label">Resolution:</label>
+                                <select class="form-select" id="resolutionSelect">
+                                    <option value="UXGA">UXGA (1600x1200)</option>
                                     <option value="SXGA">SXGA (1280x1024)</option>
                                     <option value="XGA">XGA (1024x768)</option>
                                     <option value="SVGA">SVGA (800x600)</option>
@@ -69,92 +241,95 @@
                                     <option value="CIF">CIF (400x296)</option>
                                 </select>
                             </div>
-                            <div class="form-group mb-2">
-                                <label for="qualityRange">Chất lượng (10-63, thấp hơn = chất lượng cao hơn):</label>
+                            <div class="mb-3">
+                                <label for="qualityRange" class="form-label">Quality (10-63, lower = higher quality):</label>
                                 <input type="range" class="form-range" min="10" max="63" value="10" id="qualityRange">
-                                <span id="qualityValue">10</span>
+                                <span id="qualityValue" class="ms-2">10</span>
                             </div>
-                        </div>
-                        <div class="btn-group mt-2">
-                            <button class="btn btn-success" onclick="captureESP32Image()">Capture ESP32 Image</button>
-                            <button class="btn btn-info ms-2" onclick="getLatestESP32Image()">View Latest ESP32 Image</button>
-                        </div>
-                    </div>
-                </div>
-            </div>            <div class="col-md-12 mt-4">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Leaf Analysis</h5>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <img id="capturedImage" src="" alt="Captured Leaf" class="img-fluid mb-3" style="display: none; max-width: 100%;">
-                                <div class="alert alert-info" role="alert" id="imageStatus">
-                                    No image selected for analysis
-                                </div>
+                            <div class="btn-group">
+                                <button class="btn btn-success" onclick="captureESP32Image()">
+                                    <i class="fas fa-camera me-2"></i>Capture Image
+                                </button>
+                                <button class="btn btn-info ms-2" onclick="getLatestESP32Image()">
+                                    <i class="fas fa-image me-2"></i>View Latest Image
+                                </button>
                             </div>
-                            <div class="col-md-6">
-                                <div id="analysisResults" class="mt-3">
-                                    <h6>Analysis Results:</h6>
-                                    <div id="resultsList" class="list-group">
-                                        <!-- Results will be displayed here -->
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="mt-3">
-                            <button class="btn btn-primary" onclick="analyzeLatestImage()">Analyze Latest Image</button>
-                            <button class="btn btn-secondary ms-2" onclick="getLatestESP32Image()">View Latest Image</button>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="text-center mt-4">
-            <button class="btn btn-secondary" onclick="refreshData()">Refresh Data</button>
+
+        <!-- Leaf Analysis Section -->
+        <div class="mb-5">
+            <h2 class="section-title">Leaf Analysis</h2>
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-leaf me-2"></i>Leaf Health Analysis</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <img id="capturedImage" src="" alt="Captured Leaf" class="img-fluid mb-3" style="display: none;">
+                            <div class="alert alert-info" role="alert" id="imageStatus">
+                                No image selected for analysis
+                            </div>
+                            <div class="mb-3">
+                                <label for="imageFileInput" class="form-label">Upload Image:</label>
+                                <input type="file" class="form-control" id="imageFileInput" accept="image/*" onchange="previewSelectedImage()">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Analysis Results:</h6>
+                            <div id="analysisResults" class="mt-3">
+                                <div id="resultsList" class="list-group"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="btn-group mt-3">
+                        <button class="btn btn-primary" onclick="analyzeLatestImage()">
+                            <i class="fas fa-search me-2"></i>Analyze Latest Image
+                        </button>
+                        <button class="btn btn-success ms-2" onclick="uploadAndAnalyzeImage()">
+                            <i class="fas fa-upload me-2"></i>Upload & Analyze
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Refresh Button -->
+        <div class="text-center">
+            <button class="btn btn-secondary" onclick="refreshData()">
+                <i class="fas fa-sync-alt me-2"></i>Refresh Data
+            </button>
         </div>
     </div>
 
     <script>
-        async function fetchData() {
-            try {
-                const res = await axios.get("/api/data");
-                document.getElementById("temperature").textContent = res.data.temperature + " °C";
-                document.getElementById("humidity").textContent = res.data.humidity + " %";
-                document.getElementById("light").textContent = res.data.light + " lux";
-                document.getElementById("moisture").textContent = res.data.moisture;
-            } catch (error) {
-                console.error("Error fetching data:", error);
-            }
+        function fetchSensorData() {
+            axios.get('/api/data')
+                .then(response => {
+                    const data = response.data;
+                    document.getElementById('temperature').textContent = `${data.temperature} °C`;
+                    document.getElementById('humidity').textContent = `${data.humidity} %`;
+                    document.getElementById('light').textContent = `${data.light} lux`;
+                    document.getElementById('moisture').textContent = `${data.moisture} %`;
+                })
+                .catch(error => {
+                    console.error('Error fetching sensor data:', error);
+                });
         }
 
-        async function fetchLeafImage() {
-            try {
-                const res = await axios.get("/api/leaf");
-                const img = document.getElementById("leafImage");
-                if (res.data.image) {
-                    img.src = `data:image/jpeg;hex,${res.data.image}`;
-                    img.style.display = "block";
-                }
-            } catch (error) {
-                console.error("Error fetching leaf image:", error);
-            }
-        }
+        // Fetch data every 5 seconds
+        setInterval(fetchSensorData, 5000);
+        fetchSensorData();
 
-        async function takePhoto() {
-            try {
-                await axios.get("/api/take_photo");
-                setTimeout(fetchLeafImage, 2000);  // Wait 2 seconds to receive the image
-            } catch (error) {
-                console.error("Error taking photo:", error);
-            }
-        }
-        
+        // Capture ESP32 image
         async function captureESP32Image() {
             try {
-                // Lấy cài đặt độ phân giải và chất lượng từ giao diện người dùng
                 const resolution = document.getElementById('resolutionSelect').value;
                 const quality = document.getElementById('qualityRange').value;
-                
                 const res = await axios.get(`/capture-image?resolution=${resolution}&quality=${quality}`);
                 if (res.data.status === "success") {
                     const img = document.getElementById("esp32Image");
@@ -169,7 +344,8 @@
                 alert("Error capturing image: " + error.message);
             }
         }
-        
+
+        // Get latest ESP32 image
         async function getLatestESP32Image() {
             try {
                 const res = await axios.get("/latest-image");
@@ -177,11 +353,8 @@
                     const img = document.getElementById("esp32Image");
                     img.src = res.data.url;
                     img.style.display = "block";
-                    
-                    // Format timestamp
                     const date = new Date(res.data.timestamp * 1000);
-                    const formattedDate = date.toLocaleString();
-                    console.log("Image timestamp: " + formattedDate);
+                    console.log("Image timestamp: " + date.toLocaleString());
                 } else {
                     alert("Failed to get latest image: " + res.data.message);
                 }
@@ -191,47 +364,125 @@
             }
         }
 
+        // Refresh all data
         function refreshData() {
             fetchData();
-            fetchLeafImage();
             getLatestESP32Image();
+            checkMotorControlStatus();
+            checkServoControlStatus();
         }
 
-        // Làm mới tự động mỗi 5 giây
-        setInterval(() => {
-            fetchData();
-            fetchLeafImage();
-            // Uncomment the line below if you want to auto-refresh ESP32 images
-            // getLatestESP32Image();
-        }, 5000);
-
-        // Cập nhật giá trị chất lượng khi thanh trượt thay đổi
+        // Update quality value display
         document.getElementById('qualityRange').addEventListener('input', function() {
             document.getElementById('qualityValue').textContent = this.value;
         });
-        
-        // Lấy dữ liệu lần đầu
-        refreshData();        async function analyzeLatestImage() {
+
+        // Auto-refresh data every 5 seconds
+        setInterval(() => {
+            fetchData();
+        }, 5000);
+
+        // Preview selected image
+        function previewSelectedImage() {
+            const fileInput = document.getElementById('imageFileInput');
+            const file = fileInput.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = document.getElementById('capturedImage');
+                    img.src = e.target.result;
+                    img.style.display = 'block';
+                    document.getElementById('imageStatus').textContent = 'Image selected: ' + file.name;
+                    document.getElementById('imageStatus').className = 'alert alert-info';
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Upload and analyze image
+        async function uploadAndAnalyzeImage() {
+            const fileInput = document.getElementById('imageFileInput');
+            const file = fileInput.files[0];
+            if (!file) {
+                alert('Please select an image file first');
+                return;
+            }
+            const uploadButton = document.querySelector('button[onclick="uploadAndAnalyzeImage()"]');
+            uploadButton.disabled = true;
+            uploadButton.textContent = 'Uploading & Analyzing...';
+            document.getElementById('imageStatus').textContent = 'Uploading image...';
+            document.getElementById('imageStatus').className = 'alert alert-info';
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                const uploadResponse = await axios.post('/api/upload-file', formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+                if (uploadResponse.data.status === 'success') {
+                    document.getElementById('imageStatus').textContent = 'Image uploaded. Analyzing...';
+                    const analyzeResponse = await axios.post('/api/analyze-uploaded', {
+                        filename: uploadResponse.data.filename
+                    }, {
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    if (analyzeResponse.data.status === 'success') {
+                        document.getElementById('imageStatus').textContent = 'Analysis complete';
+                        document.getElementById('imageStatus').className = 'alert alert-success';
+                        const resultsList = document.getElementById('resultsList');
+                        resultsList.innerHTML = '';
+                        analyzeResponse.data.analysis.forEach(result => {
+                            const resultItem = document.createElement('div');
+                            resultItem.className = 'list-group-item';
+                            resultItem.innerHTML = `
+                                <p class="mb-1"><strong>${result.predicted_class}</strong></p>
+                                ${result.details ? `<p class="text-muted small mb-2">${result.details}</p>` : ''}
+                                <div class="progress" style="height: 20px;">
+                                    <div class="progress-bar" role="progressbar" 
+                                         style="width: ${(result.confidence * 100).toFixed(2)}%;" 
+                                         aria-valuenow="${(result.confidence * 100).toFixed(2)}" 
+                                         aria-valuemin="0" 
+                                         aria-valuemax="100">
+                                        ${(result.confidence * 100).toFixed(2)}%
+                                    </div>
+                                </div>
+                            `;
+                            resultsList.appendChild(resultItem);
+                        });
+                    } else {
+                        document.getElementById('imageStatus').className = 'alert alert-danger';
+                        document.getElementById('imageStatus').textContent = analyzeResponse.data.message || 'Failed to analyze image';
+                    }
+                } else {
+                    document.getElementById('imageStatus').className = 'alert alert-danger';
+                    document.getElementById('imageStatus').textContent = uploadResponse.data.message || 'Failed to upload image';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('imageStatus').className = 'alert alert-danger';
+                document.getElementById('imageStatus').textContent = error.response?.data?.message || 'An error occurred during upload or analysis';
+            } finally {
+                uploadButton.disabled = false;
+                uploadButton.textContent = 'Upload & Analyze';
+            }
+        }
+
+        // Analyze latest image
+        async function analyzeLatestImage() {
             try {
                 const analyzeButton = document.querySelector('button[onclick="analyzeLatestImage()"]');
                 analyzeButton.disabled = true;
                 analyzeButton.textContent = 'Analyzing...';
-                
                 document.getElementById('imageStatus').textContent = 'Analyzing latest image...';
-
                 const response = await axios.post('/api/capture-and-analyze');
-                
                 if (response.data.status === 'success') {
-                    // Display the captured image
                     const img = document.getElementById('capturedImage');
                     img.src = response.data.image;
                     img.style.display = 'block';
                     document.getElementById('imageStatus').textContent = 'Analysis complete';
-
-                    // Display analysis results
+                    document.getElementById('imageStatus').className = 'alert alert-success';
                     const resultsList = document.getElementById('resultsList');
-                    resultsList.innerHTML = ''; // Clear previous results
-                      response.data.analysis.forEach(result => {
+                    resultsList.innerHTML = '';
+                    response.data.analysis.forEach(result => {
                         const resultItem = document.createElement('div');
                         resultItem.className = 'list-group-item';
                         resultItem.innerHTML = `
@@ -263,6 +514,183 @@
                 analyzeButton.textContent = 'Analyze Latest Image';
             }
         }
+
+        // Motor control function (updated for MQTT)
+        async function controlMotor(motorNumber, action) {
+            try {
+                const motorName = motorNumber === 1 ? 'Fan' : 'Pump';
+                const statusElementId = motorNumber === 1 ? 'fanStatus' : 'pumpStatus';
+                const statusElement = document.getElementById(statusElementId);
+                statusElement.style.display = 'block';
+                statusElement.className = 'alert alert-info mt-3';
+                statusElement.textContent = `${action === 'run' ? 'Starting' : 'Stopping'} ${motorName}...`;
+                const buttons = document.querySelectorAll(`button[onclick*="controlMotor(${motorNumber}"]`);
+                buttons.forEach(btn => btn.disabled = true);
+                const response = await axios.post('/api/motor/control', {
+                    motor: motorNumber,
+                    state: action
+                }, {
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                if (response.data.status === 'success') {
+                    statusElement.className = 'alert alert-success mt-3';
+                    statusElement.textContent = response.data.message;
+                    setTimeout(() => {
+                        statusElement.style.display = 'none';
+                    }, 3000);
+                } else {
+                    statusElement.className = 'alert alert-danger mt-3';
+                    statusElement.textContent = response.data.message || 'Failed to control motor';
+                }
+            } catch (error) {
+                console.error('Error controlling motor:', error);
+                const statusElementId = motorNumber === 1 ? 'fanStatus' : 'pumpStatus';
+                const statusElement = document.getElementById(statusElementId);
+                statusElement.style.display = 'block';
+                statusElement.className = 'alert alert-danger mt-3';
+                statusElement.textContent = error.response?.data?.message || 'Error occurred while controlling motor';
+            } finally {
+                const buttons = document.querySelectorAll(`button[onclick*="controlMotor(${motorNumber}"]`);
+                buttons.forEach(btn => btn.disabled = false);
+            }
+        }
+
+        // Check motor control availability
+        async function checkMotorControlStatus() {
+            try {
+                const response = await axios.get('/api/motor/status');
+                if (!response.data.mqtt_enabled) {
+                    const motorButtons = document.querySelectorAll('button[onclick*="controlMotor"]');
+                    motorButtons.forEach(btn => {
+                        btn.disabled = true;
+                        btn.title = 'MQTT not available';
+                    });
+                    const motorControlSection = document.querySelector('.card h5.mb-0').parentNode.parentNode;
+                    const warningDiv = document.createElement('div');
+                    warningDiv.className = 'alert alert-warning mt-3';
+                    warningDiv.innerHTML = '<strong>Warning:</strong> MQTT connection not available. Motor control is disabled.';
+                    motorControlSection.appendChild(warningDiv);
+                }
+            } catch (error) {
+                console.error('Error checking motor status:', error);
+            }
+        }
+
+        // Servo control functions
+        async function setServoAngle(angle = null) {
+            try {
+                const currentAngle = angle !== null ? angle : parseInt(document.getElementById('servoAngleRange').value);
+                const statusElement = document.getElementById('servoStatus');
+                
+                // Show loading status
+                statusElement.style.display = 'block';
+                statusElement.className = 'alert alert-info mt-3';
+                statusElement.textContent = `Setting servo to ${currentAngle}°...`;
+                
+                // Disable button temporarily
+                const setButton = document.querySelector('button[onclick="setServoAngle()"]');
+                setButton.disabled = true;
+                
+                // Update visual representation
+                updateServoVisual(currentAngle);
+                
+                const response = await axios.post('/api/servo/control', {
+                    angle: currentAngle
+                }, {
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.data.status === 'success') {
+                    statusElement.className = 'alert alert-success mt-3';
+                    statusElement.textContent = response.data.message;
+                    
+                    // Update slider if angle was set programmatically
+                    if (angle !== null) {
+                        document.getElementById('servoAngleRange').value = angle;
+                        document.getElementById('servoAngleValue').textContent = angle;
+                    }
+                    
+                    // Auto-hide success message after 3 seconds
+                    setTimeout(() => {
+                        statusElement.style.display = 'none';
+                    }, 3000);
+                } else {
+                    statusElement.className = 'alert alert-danger mt-3';
+                    statusElement.textContent = response.data.message || 'Failed to control servo';
+                }
+                
+            } catch (error) {
+                console.error('Error controlling servo:', error);
+                const statusElement = document.getElementById('servoStatus');
+                statusElement.style.display = 'block';
+                statusElement.className = 'alert alert-danger mt-3';
+                statusElement.textContent = error.response?.data?.message || 'Error occurred while controlling servo';
+            } finally {
+                // Re-enable button
+                const setButton = document.querySelector('button[onclick="setServoAngle()"]');
+                setButton.disabled = false;
+            }
+        }
+        
+        // Set servo to preset angle
+        function setServoPreset(angle) {
+            setServoAngle(angle);
+        }
+        
+        // Reset servo to initial position (0 degrees)
+        function resetServo() {
+            setServoAngle(0);
+        }
+        
+        // Update servo visual representation
+        function updateServoVisual(angle) {
+            const servoIcon = document.getElementById('servoIcon');
+            // Convert 0-140 degrees to rotation (0-140 degrees)
+            const rotation = angle;
+            servoIcon.style.transform = `rotate(${rotation}deg)`;
+        }
+        
+        // Check servo control availability
+        async function checkServoControlStatus() {
+            try {
+                const response = await axios.get('/api/servo/status');
+                if (!response.data.mqtt_enabled) {
+                    // Disable servo controls if MQTT is not available
+                    const servoControls = document.querySelectorAll('#servoAngleRange, button[onclick*="setServo"], button[onclick="resetServo()"]');
+                    servoControls.forEach(control => {
+                        control.disabled = true;
+                        control.title = 'MQTT not available';
+                    });
+                    
+                    // Show warning message
+                    const servoCard = document.querySelector('.card h5').parentNode.parentNode;
+                    if (servoCard && servoCard.querySelector('h5').textContent.includes('SG90 Servo Motor')) {
+                        const warningDiv = document.createElement('div');
+                        warningDiv.className = 'alert alert-warning mt-3';
+                        warningDiv.innerHTML = '<strong>Warning:</strong> MQTT connection not available. Servo control is disabled.';
+                        servoCard.querySelector('.card-body').appendChild(warningDiv);
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking servo status:', error);
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            checkMotorControlStatus();
+            checkServoControlStatus();
+            refreshData();
+        });
+
+        // Update servo angle value display
+        document.getElementById('servoAngleRange').addEventListener('input', function() {
+            const angle = this.value;
+            document.getElementById('servoAngleValue').textContent = angle;
+            updateServoVisual(angle);
+        });
     </script>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

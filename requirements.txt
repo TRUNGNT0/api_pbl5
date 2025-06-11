@@ -1,13 +1,25 @@
+# Flask web application requirements
 flask==2.3.3
-paho-mqtt==1.6.1
 flask-cors==4.0.0
+
+# MQTT client for sensor communication
+paho-mqtt==1.6.1
+
+# HTTP requests and API communication
 requests==2.31.0
+urllib3==2.0.4
+
+# FastAPI for AI service
 fastapi==0.115.2
 uvicorn==0.32.0
+python-multipart==0.0.12
+
+# Computer vision and ML
 opencv-python==4.10.0.84
 numpy==1.26.4
 torch==2.4.1
 torchvision==0.19.1
 ultralytics==8.3.15
-python-multipart==0.0.12
-requests==2.32.3
+
+# Database
+sqlite3  # Built into Python
